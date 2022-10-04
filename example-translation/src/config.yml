@@ -1,0 +1,12 @@
+# Configuration variables to configure environment, input directory, and output direcotry.
+YEAR : 2018                 # specify a year to load daata for, if applicable (e.g. CRA data)
+FILE_DATE : 'Oct, 2022'     # date this file is being generated on.
+DEBUG : False                # DEBUG = True means subset of records are loaded.
+LOAD_DATA : True            # LOAD_DATA = True means load dat from CSV inputs. False means load global_db .pickle file to generate .ttl files, not raw data
+BATCHES : 1                # For large files, the final .ttl file can be plsit up into multiple files, (e.g. 10)
+ZIP_TTL : True              # ZIP_TTL = True means the output .ttl files will be compressed usin gzip
+
+# Set where data exists
+IN_DIR : "example-translation/data"
+# Set where output files should be created, relative to IN_DIR
+OUT_DIR : "/../output/2018"

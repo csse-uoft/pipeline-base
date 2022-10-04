@@ -1,0 +1,16 @@
+name: PyPipeline
+channels:
+  - anaconda
+  - conda-forge
+  - defaults
+dependencies:
+  - tqdm
+  - pandas
+  - numpy
+  - pip
+  - pip:
+    - colorama==0.4.4
+    - Owlready2==0.36
+    - SPARQLWrapper==2.0.0
+    - openpyxl==3.0.9
+    - xlsxwriter
