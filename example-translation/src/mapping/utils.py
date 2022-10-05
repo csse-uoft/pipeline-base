@@ -149,8 +149,7 @@ def get_instance(klass,nm=PREFIX, inst_id=None, props={}):
         key = f"{klass}_{properties}"
         if key in global_db.keys():
             inst = global_db[key]
-            inst = collections.defaultdict(lambda:[], properties)
-            inst['is_a'] = klass
+            inst_id = inst['ID']
 
     if inst is not None:
         if inst_id is None and inst['ID']==[]:

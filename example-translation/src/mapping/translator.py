@@ -8,7 +8,7 @@ from .codes import sm_tag2uoft_codes, sm_tag2sm_code, normalize_sm_tag,normalize
 from .utils import escape_str, get_instance, get_blank_instance, logger, global_db
 from datetime import datetime, timedelta
 
-# transl
+# translations for street types to OWL
 street_type_str2ic_street_type = {
     'ave': ic.Avenue,
     'avenue': ic.Avenue,
@@ -29,6 +29,7 @@ street_type_str2ic_street_type = {
 
 }
 
+# transalation for street direction types for OWL
 street_direction_str2ic = {
     's': ic.south,
     'south':ic.south,
@@ -44,6 +45,7 @@ street_direction_str2ic = {
     'est':ic.east,
 }
 
+# trnlsation for province types to OWL
 canada_provinces = {
     "AB": "Alberta",
     "BC": "British Columbia",
@@ -66,9 +68,13 @@ canada_provinces_regex = canada_provinces_regex[:-2]
 
 
 def generate_address(row_data):
-    # Priority: addr_data1.postal_code > postal_code;
-    # addr_data1.city > localities.city
-    # Mailing address	City	Province	Postal code	Country
+    """
+    convert metadata to Address object
+    :param row_data : dict with metadata
+                Exepcting: # Mailing address	City	Province	Postal code	Country
+    :return address : dict of address object
+    """
+    
     addr_data1 = row_data.get('Mailing address') or '' if not pd.isnull(row_data.get('Mailing address')) else ''
     city = row_data.get('City') or ''  if not pd.isnull(row_data.get('City')) else ''
     state = row_data.get('Province') or ''  if not pd.isnull(row_data.get('Provnice')) else ''
@@ -168,23 +174,14 @@ def generate_address(row_data):
 
 def generate_funding(row_data, donor_org=None, donee_org=None,donor_program=None, donee_program=None):
     """
-    Return an cids:Organization instance.
-    :param instance_name_postfix:
-    :param claimed: Is the organization claimed
-    :param row_data: row data
-    :param name: Name override
-    :return:
-
-
-    Fiscal year
-    BN/Registration Number
-    Donor Legal Name
-    Donee Business number
-    Donee Name
-    Donee BN/Registration Number
-    Donee Legal name
-    check donee legal name
-    Total amount gifts
+    Generate Funding object for row_data
+    Return an .
+    :param row_data: row data as pd.Series
+    :param donor_org: instance of donor organization
+    :param donee_org: instance of donee organization
+    :param donor_program: dict, donor organization program for funding 
+    :param donee_program: dict. donee organization program for funding
+    :return fund: instance of funding object
     """
 
     if not row_data.any():
@@ -259,8 +256,8 @@ def generate_funding(row_data, donor_org=None, donee_org=None,donor_program=None
 
 def generate_organization(row_data, klass=None):
     """
-    Return an cp:Organization instance.
-    :param row_data: row data
+    Generate organization object instance
+    :param row_data: row data as pd.Series
     :param klass: Class type of the organization, e.g. cp.Organization, org.GovernmentOrganization, etc
     :return: organization
     """
@@ -356,11 +353,15 @@ def map_client_codes(value):
 
 def generate_program(row_data, organization, program_name=None, is_blank=False, beneficiary_codes=[],beneficiary_code_tags=[], address=None):
     """
+    Generate Program instance.
     :param row_data:
-    :param organization:
-    :param program_name:
+    :param organization: dict of program's organization
+    :param program_name: str, name of program
     :param is_blank: Blank program does not contain additional information from the row_data.
-    :return:
+    :param beneficiary_codes: list of codes for the beneficary stakeholder
+    :param beneficiary_code_tags: list of tags for codes for beneficary stakeholder
+    :param address: dict, an address instance
+    :return program: dict, instanceo the program created.
     """
     program = get_blank_instance(klass='cp.Program')
     if program_name:
@@ -415,6 +416,11 @@ def generate_program(row_data, organization, program_name=None, is_blank=False, 
     return program
 
 def generate_characteristic(codes):
+    """
+    Generate cids.Charactersitics from passed codes.
+    :param codes: list of dict Code instances.
+    :return res_char: dict, Charactersitic instance with associated Codes in codes.
+    """
     res_char = None
     if len(codes)>1:
         char_label =     '_'.join([normalize_code(str(code['ID'])) for code in codes])
@@ -434,6 +440,12 @@ def generate_characteristic(codes):
     return res_char
 
 def generate_community(address, char):
+    """
+    Generate cids.Community object instance
+    :param address: dict, Address intance for the community
+    :param char: dict, Characteristic intance for the community
+    :return community: dict, instance of the newly created Community
+    """
     if address is None or char is None:
         return None
 
@@ -460,6 +472,21 @@ def generate_community(address, char):
     return community
 
 def generate_service(name, organization, program, address=None, service_codes=[], service_code_tags=[],service_code_values=[], client_codes=[], client_code_tags=[],client_code_values=[]):
+    """"
+    Generate a cp.Service object instance.
+    :param name: string for name of service
+    :param organization: dict for service's organization
+    :param program: dict for service's program
+    :param address: dict for services address
+    :param service_codes: list of service code instances
+    :param service_code_tags: list of service code tags (formatted strings)
+    :param service_code_values: list of service code strings
+    :param client_codes: list of client codes for this service
+    :param client_code_tags: list of client code tags for this service (formatted strings)
+    :param client_code_values: list of cliet codes strings for this service
+    :return service: dict instance of the Service object
+    """
+
     service = get_instance(klass='cp.Service', props={'org.hasName':name, 'cp.providedBy':organization['ID']})
 
     program['cids.hasService'].append(service['ID'])

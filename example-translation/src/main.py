@@ -33,7 +33,8 @@ from mapping.logics import load_fundings,load_financials
 #------------------------------------------------------------------------
 # here for debugging purposes, imports from other files
 #------------------------------------------------------------------------
-# import re
+# import re, collections, uuid
+
 # from mapping.translator import generate_organization, generate_funding, generate_program, generate_service,\
 #     map_service_codes, map_client_codes, generate_address
 # from mapping.codes import sm_tag2uoft_codes, sm_tag2sm_code, normalize_sm_tag, ClientCode, ServiceCode,\
@@ -45,19 +46,19 @@ if __name__ == '__main__':
 
 
     if config.LOAD_DATA:
-        print("Loading organizations file...")
+        # TODO: import CSV and map columns
+        # 1. organizations
         organization_mapping = {
-            'orgID':'BN/Registration Number',
-            'desc': 'org:hasDescription',
-            'url':'cids:hasWebAddress',
-            'regDate': 'sch:dateCreated',
-            'name':'Name',
-            'address':'Mailing address',
-            'city': 'City',
-            'province': 'Province',
-            'postal':'Postal code',
+            'orgID'     : 'BN/Registration Number',
+            'desc'      : 'org:hasDescription',
+            'url'       : 'cids:hasWebAddress',
+            'regDate'   : 'sch:dateCreated',
+            'name'      : 'Name',
+            'address'   : 'Mailing address',
+            'city'      : 'City',
+            'province'  : 'Province',
+            'postal'    : 'Postal code',
         }
-
         organizations = pd.DataFrame(read_csv(IN_PATH + '/example-organizations.csv'))
         organizations['regDate'] = organizations['regDate'].apply(lambda d: format_strptime(d))
         organizations = organizations.rename(columns=organization_mapping)
@@ -66,7 +67,7 @@ if __name__ == '__main__':
         print("Done loading orgnizations.")
 
 
-        print("Loading gifts file...")
+        # 2. fundings
         fundings_mapping = {
             'from':'BN/Registration Number',
             'to':'Donee BN/Registration Number',
@@ -79,16 +80,13 @@ if __name__ == '__main__':
             rename(columns={'BN/Registration Number':'Donor BN/Registration Number', 'Name':'Donor Name', 'Legal Name':'Donor Legal Name'})
         fundings = fundings.merge(organizations[['BN/Registration Number', 'Name','Legal Name']], left_on=['Donee BN/Registration Number'], right_on=['BN/Registration Number']). \
             rename(columns={'Name':'Donee Name', 'Legal Name':'Donee Legal Name'})
+        fundings = fundings.drop(columns=['BN/Registration Number']).rename(columns={'Donor BN/Registration Number':'BN/Registration Number'})
         fundings['Fiscal year'] = config.YEAR
 
 
+
+        # 3. financials (CRA data)
         print("Loading financials file...")
-        fundings_mapping = {
-            'from':'BN/Registration Number',
-            'to':'Donee BN/Registration Number',
-            'received':'receivedAmount',
-            'requested':'requestedAmount',
-        }
         financials = pd.DataFrame(read_csv(IN_PATH + '/example-financials.csv'))
         # financials = .rename(columns=fundings_mapping)
         financials = financials.merge(organizations, on=['BN/Registration Number'])
@@ -98,6 +96,7 @@ if __name__ == '__main__':
 
         with compass:
             print("Generating organizations...")
+            # TODO: convert Dataframe to OWL concepts
             for _,row_data in tqdm.tqdm(organizations.iterrows(), total=organizations.shape[0]):
                 generate_organization(row_data)
 
@@ -119,7 +118,7 @@ if __name__ == '__main__':
 
         if config.BATCHES <=1:
             # write everything as one file
-            fileout = OUT_PATH + f"knowledge_graph_example_{config.YEAR}.ttl"
+            fileout = OUT_PATH + f"/knowledge_graph_example_{config.YEAR}.ttl"
             save_db_as_ttl(filename=fileout)
             if config.ZIP_TTL:
                 os.system("gzip -c \""+fileout + "\" > \""+fileout + ".gz\"")
@@ -130,7 +129,7 @@ if __name__ == '__main__':
             global_db_keys = list(global_db_hold.keys())
             batch_size = round(len(global_db_keys) / config.BATCHES)
             for i,b in enumerate(range(0,len(global_db_keys)+1, batch_size+1)):
-                print(i,b, b+batch_size)
+                print(i,b, b+batch_size+1)
                 tmp_db = dict(zip(global_db_keys[b:b+batch_size+1], list(global_db_hold.values())[b:b+batch_size+1]))
                 fileout = OUT_PATH + f"/knowledge_graph_example_{i}_{config.YEAR}.ttl"
                 save_db_as_ttl(filename=fileout, dict_db=tmp_db)
